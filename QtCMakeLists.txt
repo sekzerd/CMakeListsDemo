@@ -1,0 +1,78 @@
+cmake_minimum_required(VERSION 3.5)
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(PROJECT_NAME "QtPlayground")
+#deploy
+set(DEPLOY FALSE)
+#build target directory
+set(TARGET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TARGET_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${TARGET_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${TARGET_DIR})
+
+project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+set(PROJECT_SOURCES
+        main.cpp
+        MainWindow.cpp
+        MainWindow.hpp
+        MainWindow.ui
+)
+
+if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    qt_add_executable(${PROJECT_NAME} MANUAL_FINALIZATION ${PROJECT_SOURCES})
+else()
+    if(ANDROID)
+        add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCES} )
+    else()
+        add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
+    endif()
+endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
+    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE TRUE
+    WIN32_EXECUTABLE TRUE
+)
+
+if(QT_VERSION_MAJOR EQUAL 6)
+    qt_finalize_executable(${PROJECT_NAME})
+endif()
+
+if(DEPLOY)
+if(WIN32)
+  #setup target directory
+  set(QT_INSTALL_PATH "${CMAKE_PREFIX_PATH}")
+  set(REQUIRED_LIBS Core Widgets Gui)
+  set(PLUGINS_LIBS_PLATFORMS qdirect2d qminimal qoffscreen qwindows)
+  set(ENABLED_LIBS platforms)
+  set(DEBUG_SUFFIX "")
+
+  if (CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(DEBUG_SUFFIX "d")
+  endif()
+
+  #copy Qt dll files
+  foreach (QT_LIB ${REQUIRED_LIBS})
+    file(COPY "${QT_INSTALL_PATH}/bin/Qt${QT_VERSION_MAJOR}${QT_LIB}${DEBUG_SUFFIX}.dll" DESTINATION "${TARGET_DIR}")
+  endforeach()
+
+  #copy platforms files
+  foreach(LIB ${PLUGINS_LIBS})
+    file(COPY "${QT_INSTALL_PATH}/plugins/${ENABLED_LIBS}/${PLUGINS_LIBS_PLATFORMS}${DEBUG_SUFFIX}.dll" DESTINATION "${TARGET_DIR}/platforms")
+  endforeach()
+endif()
+endif()
